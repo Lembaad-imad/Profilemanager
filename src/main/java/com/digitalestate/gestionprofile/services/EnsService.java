@@ -1,7 +1,9 @@
 package com.digitalestate.gestionprofile.services;
 
 import com.digitalestate.gestionprofile.controllers.request.EnsRequest;
+import com.digitalestate.gestionprofile.controllers.response.EnsResponse;
 import com.digitalestate.gestionprofile.dao.Ens;
+import com.digitalestate.gestionprofile.exception.ApiNotFoundException;
 import com.digitalestate.gestionprofile.exception.ResourceAlreadyExistsException;
 import com.digitalestate.gestionprofile.repositories.EnsRepository;
 import com.digitalestate.gestionprofile.utils.FileUtils;
@@ -26,28 +28,47 @@ public class EnsService {
     @Value("${conf.profileManager}")
     private String confFolder ;
 
-    public void createEns(MultipartFile file) throws IOException {
-//        Optional<Ens> ens = ensRepository.findByEmailIgnoreCase(ensRequest.getEmail());
-//        if(ens.isPresent()){
-//            throw new ResourceAlreadyExistsException("Ens already exists");
-//        }
-//
-//
-//        Ens ensToSave = Ens.builder()
-//                .nameEns(ensRequest.getNameEns())
-//                .nameContact(ensRequest.getNameContact())
-//                .poste(ensRequest.getPoste())
-//                .email(ensRequest.getEmail())
-//                .phone(ensRequest.getPhone())
-//                .build();
-//        Ens savedEns = ensRepository.save(ensToSave);
-        saveEnsFile(file);
+    public EnsResponse createEns(EnsRequest ensRequest){
+        Optional<Ens> ens = ensRepository.findByEmailIgnoreCase(ensRequest.getEmail());
+        if(ens.isPresent()){
+            throw new ResourceAlreadyExistsException("Ens already exists");
+        }
+
+
+        Ens ensToSave = Ens.builder()
+                .nameEns(ensRequest.getNameEns())
+                .nameContact(ensRequest.getNameContact())
+                .poste(ensRequest.getPoste())
+                .email(ensRequest.getEmail())
+                .phone(ensRequest.getPhone())
+                .build();
+        Ens savedEns =  ensRepository.save(ensToSave);
         log.info("ens created with  name ");
+        return toEnsResponse(savedEns);
     }
 
-    public void saveEnsFile(MultipartFile file ) throws IOException {
-        String imagePath = confFolder + File.separator + "ens" + File.separator ;
-        Path path = Paths.get(imagePath + File.separator + file.getOriginalFilename());
+    public void saveEnsFile(MultipartFile file , Long id ) throws IOException {
+        Ens ens = ensRepository.findById(id).orElseThrow(() -> new ApiNotFoundException("ens is not found with id " + id));
+        String ensFolder = "ens";
+        String imagePath = confFolder + File.separator + ensFolder + File.separator + ens.getId() ;
+        Path path = Paths.get(imagePath);
+        if(!Files.exists(path)){
+            Files.createDirectories(path);
+        }
         FileUtils.saveFile(file , imagePath);
+        ens.setImage(file.getOriginalFilename());
+        ensRepository.save(ens);
+    }
+
+
+    private EnsResponse toEnsResponse(Ens ens){
+        return EnsResponse.builder()
+                .id(ens.getId())
+                .nameEns(ens.getNameEns())
+                .nameContact(ens.getNameContact())
+                .poste(ens.getPoste())
+                .email(ens.getEmail())
+                .phone(ens.getPhone())
+                .build();
     }
 }

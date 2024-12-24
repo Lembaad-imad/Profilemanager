@@ -2,6 +2,7 @@ package com.digitalestate.gestionprofile.controllers;
 
 
 import com.digitalestate.gestionprofile.controllers.request.EnsRequest;
+import com.digitalestate.gestionprofile.controllers.response.EnsResponse;
 import com.digitalestate.gestionprofile.services.EnsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -17,9 +18,17 @@ import java.io.IOException;
 @CrossOrigin
 public class EnsController {
     private final EnsService ensService;
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> createEns(@RequestPart("file") MultipartFile file) throws IOException {
-        ensService.createEns(file);
+
+
+    @PostMapping( path = "/{id}/file",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> UploadEnsFile(@RequestPart("file") MultipartFile file,@PathVariable Long id) throws IOException {
+        ensService.saveEnsFile(file,id);
         return ResponseEntity.ok().build();
+    }
+
+
+    @PostMapping()
+    public ResponseEntity<EnsResponse> createEns(@RequestBody EnsRequest ensRequest) {
+        return ResponseEntity.ok(ensService.createEns(ensRequest));
     }
 }

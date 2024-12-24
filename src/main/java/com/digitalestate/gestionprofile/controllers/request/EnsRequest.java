@@ -16,5 +16,4 @@ public class EnsRequest {
     private String poste;
     private String email;
     private String phone;
-    private String image;
 }

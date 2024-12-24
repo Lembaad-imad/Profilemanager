@@ -52,7 +52,7 @@ public class FileUtils {
     }
 
     public static void saveFile(MultipartFile file, String userConfDirectoryPath) throws IOException {
-        LOGGER.info("Upload file in {} in destination {}", file.getOriginalFilename(), userConfDirectoryPath);
+        LOGGER.info("Upload file  {} in destination {}", file.getOriginalFilename(), userConfDirectoryPath);
         String fileName = file.getOriginalFilename();
         Files.write(Paths.get(userConfDirectoryPath + File.separator + fileName), file.getBytes());
     }
@@ -64,7 +64,6 @@ public class FileUtils {
 
             // Delete the file
             Files.delete(filePath);
-
             System.out.println("File deleted successfully.");
         } catch (IOException e) {
             System.err.println("Error deleting the file: " + e.getMessage());

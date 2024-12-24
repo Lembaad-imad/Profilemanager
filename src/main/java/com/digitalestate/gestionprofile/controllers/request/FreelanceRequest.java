@@ -9,10 +9,9 @@ import lombok.*;
 @Builder
 public class FreelanceRequest {
     private String name;
-    private String resume;
     private String intitule;
-    private String listcompetences;
+    private String competences;
     private String email;
     private String phone;
-    private String image;
+
 }
