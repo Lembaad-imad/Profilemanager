@@ -1,6 +1,7 @@
 package com.digitalestate.gestionprofile.controllers.response;
 
 
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,10 +14,12 @@ import lombok.NoArgsConstructor;
 public class FreelanceResponse {
     private Long id;
     private String name;
-    private String resume;
+    @Nullable
+    private byte[] resume;
     private String intitule;
     private String competences;
     private String email;
     private String phone;
-    private String image;
+    @Nullable
+    private byte[] image;
 }

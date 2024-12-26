@@ -10,6 +10,9 @@ import com.digitalestate.gestionprofile.utils.FileUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ public class FreelanceService {
     private final FreelanceRepository freelanceRepository;
     @Value("${conf.profileManager}")
     private String confFolder ;
+    private final String freelanceFolder = "freelance";
     public FreelanceResponse createFreelance(FreelanceRequest freelanceRequest) {
         Optional<Freelance> freelance = freelanceRepository.findFreelanceByEmailIgnoreCase(freelanceRequest.getEmail());
         if(freelance.isPresent()) {
@@ -50,8 +53,8 @@ public class FreelanceService {
 
 
     public void uploadCv(MultipartFile file,Long id) throws IOException {
-            // Handle the resume upload
-        ;saveFreelanceFile(file,id);
+        // Handle the resume upload
+        saveFreelanceFile(file,id);
 
     }
 
@@ -59,33 +62,111 @@ public class FreelanceService {
         // Handle  the image upload
         saveFreelanceFile(file,id);
     }
+    public void deleteFreelance(Long id) {
+        Freelance freelance = freelanceRepository.findById(id).orElseThrow(()->new ApiNotFoundException("freelancer is not found with id " + id));
+        freelanceRepository.delete(freelance);
+    }
+
 
 
     private FreelanceResponse toFreelanceResponse(Freelance freelance) {
-        return FreelanceResponse.builder()
+        FreelanceResponse freelanceResponse =  FreelanceResponse.builder()
                 .id(freelance.getId())
                 .name(freelance.getName())
+                .resume(null)
                 .intitule(freelance.getIntitule())
                 .phone(freelance.getPhone())
                 .email(freelance.getEmail())
                 .competences(freelance.getCompetences())
+                .image(null)
                 .build();
+
+        if(freelance.getImage() != null) {
+            String imagePath = confFolder + File.separator + freelanceFolder + File.separator + freelance.getId()+File.separator+freelance.getImage() ;
+            File imageFile = Paths.get(imagePath).toFile();
+            byte[] imageByte = FileUtils.convertFileToByteArray(imageFile);
+            freelanceResponse.setImage(imageByte);
+        }
+        if(freelance.getResume() != null) {
+            String resumePath = confFolder + File.separator + freelanceFolder + File.separator + freelance.getId()+File.separator+freelance.getResume() ;
+            File resumeFile = Paths.get(resumePath).toFile();
+            byte[] resumeByte = FileUtils.convertFileToByteArray(resumeFile);
+            freelanceResponse.setResume(resumeByte);
+        }
+        return freelanceResponse;
     }
+
 
 
     public void saveFreelanceFile(MultipartFile file , Long id ) throws IOException {
         Freelance freelance = freelanceRepository.findById(id).orElseThrow(() -> new ApiNotFoundException("freelance  is not found with id " + id));
-        String freelanceFolder = "freelance";
-        String imagePath = confFolder + File.separator + freelanceFolder + File.separator + freelance.getId() ;
+        saveFile(freelance.getId(),file);
+        freelance.setImage(file.getOriginalFilename());
+        freelanceRepository.save(freelance);
+    }
+
+    public void saveFile(Long id,MultipartFile file) throws IOException{
+        String imagePath = confFolder + File.separator + freelanceFolder + File.separator + id ;
         Path path = Paths.get(imagePath);
         if(!Files.exists(path)){
             Files.createDirectories(path);
         }
         FileUtils.saveFile(file , imagePath);
-        freelance.setImage(file.getOriginalFilename());
+    }
+
+
+    public Page<FreelanceResponse> getFreelancePaginate(int page, int size) {
+        Pageable pageable = PageRequest.of(page,size);
+        return freelanceRepository.findAll(pageable).map(this::toFreelanceResponse);
+    }
+
+    public List<FreelanceResponse> getFreelances() {
+        return freelanceRepository.findAll().stream().map(this::toFreelanceResponse).collect(Collectors.toList());
+    }
+
+    public void updateFreelance(Long id, MultipartFile resume, MultipartFile image, FreelanceRequest freelanceRequest) throws IOException {
+        Freelance freelance = freelanceRepository.findById(id).orElseThrow(()->new ApiNotFoundException("freelance is not found with id " + id));
+        freelance.setName(freelanceRequest.getName());
+        freelance.setIntitule(freelanceRequest.getIntitule());
+        freelance.setPhone(freelanceRequest.getPhone());
+        freelance.setEmail(freelanceRequest.getEmail());
+        freelance.setCompetences(String.join(",", freelanceRequest.getCompetences()));
+        saveFile(id,resume);
+        freelance.setResume(resume.getOriginalFilename());
+        saveFile(id,image);
+        freelance.setImage(resume.getOriginalFilename());
+        freelanceRepository.save(freelance);
+    }
+
+    public void patchFreelance(Long id, FreelanceRequest freelanceRequest) {
+        Freelance freelance = freelanceRepository.findById(id)
+                .orElseThrow(() -> new ApiNotFoundException("Freelance is not found with id " + id));
+
+        // Update only the provided fields
+        if (freelanceRequest.getName() != null) {
+            freelance.setName(freelanceRequest.getName());
+        }
+        if (freelanceRequest.getIntitule() != null) {
+            freelance.setIntitule(freelanceRequest.getIntitule());
+        }
+        if (freelanceRequest.getPhone() != null) {
+            freelance.setPhone(freelanceRequest.getPhone());
+        }
+        if (freelanceRequest.getEmail() != null) {
+            freelance.setEmail(freelanceRequest.getEmail());
+        }
+        if (freelanceRequest.getCompetences() != null) {
+            freelance.setCompetences(String.join(",", freelanceRequest.getCompetences()));
+        }
+
+        // Save updated entity
         freelanceRepository.save(freelance);
     }
 
 
-
+    public FreelanceResponse getFreelanceById(Long id) {
+        Freelance freelance = freelanceRepository.findById(id)
+                .orElseThrow(() -> new ApiNotFoundException("Freelance is not found with id " + id));
+        return toFreelanceResponse(freelance);
+    }
 }

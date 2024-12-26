@@ -10,6 +10,9 @@ import com.digitalestate.gestionprofile.utils.FileUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +32,7 @@ public class EnsService {
     private final EnsRepository ensRepository;
     @Value("${conf.profileManager}")
     private String confFolder ;
+    private final String ensFolder = "ens";
 
     public List<EnsResponse> getEns(){
         List<EnsResponse> ens = ensRepository.findAll().stream().map(this::toEnsResponse).collect(Collectors.toList());
@@ -41,7 +45,6 @@ public class EnsService {
         if(ens.isPresent()){
             throw new ResourceAlreadyExistsException("Ens already exists");
         }
-
 
         Ens ensToSave = Ens.builder()
                 .nameEns(ensRequest.getNameEns())
@@ -57,7 +60,7 @@ public class EnsService {
 
     public void saveEnsFile(MultipartFile file , Long id ) throws IOException {
         Ens ens = ensRepository.findById(id).orElseThrow(() -> new ApiNotFoundException("ens is not found with id " + id));
-        String ensFolder = "ens";
+
         String imagePath = confFolder + File.separator + ensFolder + File.separator + ens.getId() ;
         Path path = Paths.get(imagePath);
         if(!Files.exists(path)){
@@ -68,15 +71,73 @@ public class EnsService {
         ensRepository.save(ens);
     }
 
-
     private EnsResponse toEnsResponse(Ens ens){
-        return EnsResponse.builder()
+        EnsResponse ensResponse =  EnsResponse.builder()
                 .id(ens.getId())
                 .nameEns(ens.getNameEns())
                 .nameContact(ens.getNameContact())
                 .poste(ens.getPoste())
                 .email(ens.getEmail())
                 .phone(ens.getPhone())
+                .image(null)
                 .build();
+
+        if(ens.getImage()!=null){
+            String imagePath = confFolder + File.separator + ensFolder + File.separator + ens.getId()+File.separator+ens.getImage();
+            File file = Paths.get(imagePath).toFile();
+            byte[] imageByte = FileUtils.convertFileToByteArray(file);
+            ensResponse.setImage(imageByte);
+        }
+        return ensResponse;
+    }
+
+
+    public Page<EnsResponse> getEnsPaginate(int page, int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return ensRepository.findAll(pageable).map(this::toEnsResponse);
+    }
+
+    public void deleteEns(Long id) {
+        Ens ens = ensRepository.findById(id).orElseThrow(()->new ApiNotFoundException("ens is not found with id " + id));
+        ensRepository.delete(ens);
+    }
+
+    public void updateEns(Long id, EnsRequest ensRequest){
+        Ens ens = ensRepository.findById(id).orElseThrow(()->new ApiNotFoundException("ens is not found with id " + id));
+        ens.setNameEns(ensRequest.getNameEns());
+        ens.setNameContact(ensRequest.getNameContact());
+        ens.setPoste(ensRequest.getPoste());
+        ens.setEmail(ensRequest.getEmail());
+        ens.setPhone(ensRequest.getPhone());
+        ensRepository.save(ens);
+    }
+
+    public void patchEns(Long id, EnsRequest ensRequest) {
+        Ens ens = ensRepository.findById(id)
+                .orElseThrow(() -> new ApiNotFoundException("Ens is not found with id " + id));
+
+        // Update only the provided fields
+        if (ensRequest.getNameEns() != null) {
+            ens.setNameEns(ensRequest.getNameEns());
+        }
+        if (ensRequest.getNameContact() != null) {
+            ens.setNameContact(ensRequest.getNameContact());
+        }
+        if (ensRequest.getPoste() != null) {
+            ens.setPoste(ensRequest.getPoste());
+        }
+        if (ensRequest.getEmail() != null) {
+            ens.setEmail(ensRequest.getEmail());
+        }
+        if (ensRequest.getPhone() != null) {
+            ens.setPhone(ensRequest.getPhone());
+        }
+        // Save updated entity
+        ensRepository.save(ens);
+    }
+
+    public EnsResponse getEnsById(Long id) {
+        Ens ens = ensRepository.findById(id).orElseThrow(()->new ApiNotFoundException("ens is not found with id " + id));
+        return toEnsResponse(ens);
     }
 }
