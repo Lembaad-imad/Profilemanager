@@ -18,7 +18,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -32,12 +35,13 @@ public class FreelanceService {
         if(freelance.isPresent()) {
             throw new ResourceAlreadyExistsException("Freelance already exists");
         }
+        String competencesString = String.join(",", freelanceRequest.getCompetences());
         Freelance freelanceToSave = Freelance.builder()
                 .name(freelanceRequest.getName())
                 .intitule(freelanceRequest.getIntitule())
                 .phone(freelanceRequest.getPhone())
                 .email(freelanceRequest.getEmail())
-                .competences(freelanceRequest.getCompetences())
+                .competences(competencesString)
                 .build();
         Freelance savedFreelance = freelanceRepository.save(freelanceToSave);
         log.info("ens created with  name ");

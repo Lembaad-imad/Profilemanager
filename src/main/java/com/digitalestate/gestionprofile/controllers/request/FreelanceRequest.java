@@ -2,6 +2,8 @@ package com.digitalestate.gestionprofile.controllers.request;
 
 import lombok.*;
 
+import java.util.List;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -10,8 +12,7 @@ import lombok.*;
 public class FreelanceRequest {
     private String name;
     private String intitule;
-    private String competences;
+    private List<String> competences;
     private String email;
     private String phone;
-
 }

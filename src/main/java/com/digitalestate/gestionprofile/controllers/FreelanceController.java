@@ -37,8 +37,8 @@ public class FreelanceController {
 
     @PostMapping(path = "/{id}/image")
     public ResponseEntity<Void> uploadImage(@RequestPart("image") MultipartFile file,@PathVariable("id") Long id) throws IOException {
-        if (file == null || !file.getContentType().equals("image/")) {
-            throw new ResourceNotAllowedException("Only PDF files are allowed.");
+        if (file == null || !file.getContentType().startsWith("image/")) {
+            throw new ResourceNotAllowedException("Only images files are allowed.");
         }
         freelanceService.uploadImage(file,id);
         return ResponseEntity.ok().build();

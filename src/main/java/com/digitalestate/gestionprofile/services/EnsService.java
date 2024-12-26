@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +29,12 @@ public class EnsService {
     private final EnsRepository ensRepository;
     @Value("${conf.profileManager}")
     private String confFolder ;
+
+    public List<EnsResponse> getEns(){
+        List<EnsResponse> ens = ensRepository.findAll().stream().map(this::toEnsResponse).collect(Collectors.toList());
+        return ens;
+    }
+
 
     public EnsResponse createEns(EnsRequest ensRequest){
         Optional<Ens> ens = ensRepository.findByEmailIgnoreCase(ensRequest.getEmail());

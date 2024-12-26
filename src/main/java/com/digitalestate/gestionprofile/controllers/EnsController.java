@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,6 +21,10 @@ public class EnsController {
     private final EnsService ensService;
 
 
+    @GetMapping
+     public ResponseEntity<List<EnsResponse>> getEns() {
+         return ResponseEntity.ok(ensService.getEns());
+    }
     @PostMapping( path = "/{id}/file",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> UploadEnsFile(@RequestPart("file") MultipartFile file,@PathVariable Long id) throws IOException {
         ensService.saveEnsFile(file,id);
