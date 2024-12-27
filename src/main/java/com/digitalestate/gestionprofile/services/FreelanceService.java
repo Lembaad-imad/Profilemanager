@@ -7,6 +7,7 @@ import com.digitalestate.gestionprofile.exception.ApiNotFoundException;
 import com.digitalestate.gestionprofile.exception.ResourceAlreadyExistsException;
 import com.digitalestate.gestionprofile.repositories.FreelanceRepository;
 import com.digitalestate.gestionprofile.utils.FileUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,6 +35,9 @@ public class FreelanceService {
     @Value("${conf.profileManager}")
     private String confFolder ;
     private final String freelanceFolder = "freelance";
+    private final ObjectMapper objectMapper;
+
+
     public FreelanceResponse createFreelance(FreelanceRequest freelanceRequest) {
         Optional<Freelance> freelance = freelanceRepository.findFreelanceByEmailIgnoreCase(freelanceRequest.getEmail());
         if(freelance.isPresent()) {
@@ -86,6 +91,7 @@ public class FreelanceService {
             File imageFile = Paths.get(imagePath).toFile();
             byte[] imageByte = FileUtils.convertFileToByteArray(imageFile);
             freelanceResponse.setImage(imageByte);
+            freelanceResponse.setImageType(freelance.getImage().substring(freelance.getImage().lastIndexOf(".")+1));
         }
         if(freelance.getResume() != null) {
             String resumePath = confFolder + File.separator + freelanceFolder + File.separator + freelance.getId()+File.separator+freelance.getResume() ;
@@ -124,17 +130,21 @@ public class FreelanceService {
         return freelanceRepository.findAll().stream().map(this::toFreelanceResponse).collect(Collectors.toList());
     }
 
-    public void updateFreelance(Long id, MultipartFile resume, MultipartFile image, FreelanceRequest freelanceRequest) throws IOException {
+    public void updateFreelance(Long id, MultipartFile resume, MultipartFile image, String freelanceRequestBase64) throws Exception {
+        FreelanceRequest freelanceRequest = base64ToFreelanceRequest(freelanceRequestBase64);
         Freelance freelance = freelanceRepository.findById(id).orElseThrow(()->new ApiNotFoundException("freelance is not found with id " + id));
         freelance.setName(freelanceRequest.getName());
         freelance.setIntitule(freelanceRequest.getIntitule());
         freelance.setPhone(freelanceRequest.getPhone());
         freelance.setEmail(freelanceRequest.getEmail());
         freelance.setCompetences(String.join(",", freelanceRequest.getCompetences()));
-        saveFile(id,resume);
-        freelance.setResume(resume.getOriginalFilename());
-        saveFile(id,image);
-        freelance.setImage(resume.getOriginalFilename());
+        if(resume!=null){
+            saveFile(id,resume);
+            freelance.setResume(resume.getOriginalFilename());
+        }if(image!=null){
+            saveFile(id,image);
+            freelance.setImage(image.getOriginalFilename());
+        }
         freelanceRepository.save(freelance);
     }
 
@@ -161,6 +171,16 @@ public class FreelanceService {
 
         // Save updated entity
         freelanceRepository.save(freelance);
+    }
+
+
+    public FreelanceRequest base64ToFreelanceRequest(String base64) throws Exception {
+        // Decode Base64 to JSON string
+        byte[] decodedBytes = Base64.getDecoder().decode(base64);
+        String jsonString = new String(decodedBytes);
+        log.info("received json is "+jsonString);
+        // Convert JSON string to FreelanceRequest object
+        return objectMapper.readValue(jsonString, FreelanceRequest.class);
     }
 
 

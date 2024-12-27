@@ -22,4 +22,6 @@ public class FreelanceResponse {
     private String phone;
     @Nullable
     private byte[] image;
+    @Nullable
+    private String imageType;
 }

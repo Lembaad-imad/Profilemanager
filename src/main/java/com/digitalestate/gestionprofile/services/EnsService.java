@@ -1,12 +1,14 @@
 package com.digitalestate.gestionprofile.services;
 
 import com.digitalestate.gestionprofile.controllers.request.EnsRequest;
+import com.digitalestate.gestionprofile.controllers.request.FreelanceRequest;
 import com.digitalestate.gestionprofile.controllers.response.EnsResponse;
 import com.digitalestate.gestionprofile.dao.Ens;
 import com.digitalestate.gestionprofile.exception.ApiNotFoundException;
 import com.digitalestate.gestionprofile.exception.ResourceAlreadyExistsException;
 import com.digitalestate.gestionprofile.repositories.EnsRepository;
 import com.digitalestate.gestionprofile.utils.FileUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,6 +36,7 @@ public class EnsService {
     @Value("${conf.profileManager}")
     private String confFolder ;
     private final String ensFolder = "ens";
+    private final ObjectMapper objectMapper;
 
     public List<EnsResponse> getEns(){
         List<EnsResponse> ens = ensRepository.findAll().stream().map(this::toEnsResponse).collect(Collectors.toList());
@@ -60,15 +64,19 @@ public class EnsService {
 
     public void saveEnsFile(MultipartFile file , Long id ) throws IOException {
         Ens ens = ensRepository.findById(id).orElseThrow(() -> new ApiNotFoundException("ens is not found with id " + id));
+        saveFile(id,file);
+        ens.setImage(file.getOriginalFilename());
+        ensRepository.save(ens);
+    }
 
-        String imagePath = confFolder + File.separator + ensFolder + File.separator + ens.getId() ;
+
+    public void saveFile(Long id,MultipartFile file) throws IOException{
+        String imagePath = confFolder + File.separator + ensFolder + File.separator + id ;
         Path path = Paths.get(imagePath);
         if(!Files.exists(path)){
             Files.createDirectories(path);
         }
         FileUtils.saveFile(file , imagePath);
-        ens.setImage(file.getOriginalFilename());
-        ensRepository.save(ens);
     }
 
     private EnsResponse toEnsResponse(Ens ens){
@@ -87,6 +95,7 @@ public class EnsService {
             File file = Paths.get(imagePath).toFile();
             byte[] imageByte = FileUtils.convertFileToByteArray(file);
             ensResponse.setImage(imageByte);
+            ensResponse.setImageType(ens.getImage().substring(ens.getImage().lastIndexOf(".")+1));
         }
         return ensResponse;
     }
@@ -102,13 +111,18 @@ public class EnsService {
         ensRepository.delete(ens);
     }
 
-    public void updateEns(Long id, EnsRequest ensRequest){
+    public void updateEns(Long id,MultipartFile image ,String ensRequestBase64) throws Exception {
         Ens ens = ensRepository.findById(id).orElseThrow(()->new ApiNotFoundException("ens is not found with id " + id));
+        EnsRequest ensRequest = base64ToEnsRequest(ensRequestBase64);
         ens.setNameEns(ensRequest.getNameEns());
         ens.setNameContact(ensRequest.getNameContact());
         ens.setPoste(ensRequest.getPoste());
         ens.setEmail(ensRequest.getEmail());
         ens.setPhone(ensRequest.getPhone());
+        if(image!=null){
+            saveFile(id,image);
+            ens.setImage(image.getOriginalFilename());
+        }
         ensRepository.save(ens);
     }
 
@@ -140,4 +154,14 @@ public class EnsService {
         Ens ens = ensRepository.findById(id).orElseThrow(()->new ApiNotFoundException("ens is not found with id " + id));
         return toEnsResponse(ens);
     }
+
+    public EnsRequest base64ToEnsRequest(String base64) throws Exception {
+        // Decode Base64 to JSON string
+        byte[] decodedBytes = Base64.getDecoder().decode(base64);
+        String jsonString = new String(decodedBytes);
+        log.info("received json is "+jsonString);
+        // Convert JSON string to FreelanceRequest object
+        return objectMapper.readValue(jsonString, EnsRequest.class);
+    }
+
 }

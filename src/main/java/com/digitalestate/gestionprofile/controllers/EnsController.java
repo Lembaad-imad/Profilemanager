@@ -59,9 +59,14 @@ public class EnsController {
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Void> updateEns(@PathVariable("id") Long id,@RequestBody EnsRequest ensRequest) {
-        ensService.updateEns(id,ensRequest);
+    @PutMapping(value= "/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> updateEns(
+            @PathVariable("id") Long id,
+            @RequestPart("image") MultipartFile image,
+            @RequestParam("ensRequest") String ensRequestBase64)
+            throws Exception
+    {
+        ensService.updateEns(id,image,ensRequestBase64);
         return ResponseEntity.ok().build();
     }
 

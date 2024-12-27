@@ -73,7 +73,9 @@ public class FreelanceController {
             @PathVariable("id")Long id,
             @RequestPart("resume") MultipartFile resume,
             @RequestPart("image") MultipartFile image,
-            @RequestPart("freelanceRequest") FreelanceRequest freelanceRequest) throws IOException{
+            @RequestParam("freelanceRequest") String freelanceRequest
+            ) throws Exception{
+
         freelanceService.updateFreelance(id,resume,image,freelanceRequest);
         return ResponseEntity.ok().build();
     }

@@ -20,4 +20,6 @@ public class EnsResponse {
     private String phone;
     @Nullable
     private byte[] image;
+    @Nullable
+    private String imageType;
 }
