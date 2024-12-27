@@ -62,7 +62,7 @@ public class EnsController {
     @PutMapping(value= "/{id}",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateEns(
             @PathVariable("id") Long id,
-            @RequestPart("image") MultipartFile image,
+            @RequestPart(name="image",required = false) MultipartFile image,
             @RequestParam("ensRequest") String ensRequestBase64)
             throws Exception
     {

@@ -71,8 +71,8 @@ public class FreelanceController {
     @PutMapping(value = "/{id}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateFreelance(
             @PathVariable("id")Long id,
-            @RequestPart("resume") MultipartFile resume,
-            @RequestPart("image") MultipartFile image,
+            @RequestPart(name="resume",required = false) MultipartFile resume,
+            @RequestPart(name="image",required = false) MultipartFile image,
             @RequestParam("freelanceRequest") String freelanceRequest
             ) throws Exception{
 
